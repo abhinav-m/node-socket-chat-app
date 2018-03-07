@@ -22,7 +22,7 @@ io.on("connection", socket => {
   socket.emit("newEmail", {
     from: "abhinav@example.com",
     text: "Hey what is going on",
-    createdAt: Date.now().toString()
+    createdAt: new Date().getTime()
   });
 
   socket.emit("newMessage", {
@@ -30,8 +30,14 @@ io.on("connection", socket => {
     createdAt: "1234"
   });
 
+  //io.emit broadcasts message to all 'sockets' or users connected (unlike socket.emit)
   socket.on("createMessage", message => {
     console.log("createMessage", message);
+    io.emit("newMessage", {
+      from: message.from,
+      text: message.text,
+      createdAt: new Date().getTime()
+    });
   });
 
   socket.on("createEmail", newEmail => {
