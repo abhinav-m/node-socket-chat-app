@@ -34,13 +34,13 @@ io.on("connection", socket => {
   );
 
   //io.emit broadcasts message to all 'sockets' or users connected (unlike socket.emit)
-  socket.on("createMessage", message => {
+  //callback function here is the one defined in client (index.js) it can be executed to acknowledge data
+  //being successfully transferred between client and server.
+
+  socket.on("createMessage", (message, callback) => {
     console.log("createMessage", message);
     io.emit("newMessage", generateMessage(message.from, message.text));
-  });
-
-  socket.on("createEmail", newEmail => {
-    console.log("createEmail", newEmail);
+    callback("Got it");
   });
 
   socket.on("disconnect", socket => {
