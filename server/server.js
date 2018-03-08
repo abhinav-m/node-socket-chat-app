@@ -23,7 +23,7 @@ io.on("connection", socket => {
 
   socket.emit(
     "newMessage",
-    generateMessage("admin", "Welcome to the chat app!")
+    generateMessage("Admin", "Welcome to the chat app!")
   );
 
   //Send info to everybody BUT the socket being used.
