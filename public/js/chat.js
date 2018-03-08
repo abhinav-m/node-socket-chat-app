@@ -21,11 +21,25 @@ function scrollToBottom() {
 }
 
 socket.on("connect", function() {
-  console.log("Connected to server");
+  //Get the current url params from global window object( to be used as parameters for creating rooms.)
+  var params = jQuery.deparam(window.location.search);
+  //Creating isolated area (room) for broadcasts
+  socket.emit("join", params, function(err) {
+    if (err) {
+      alert(err);
+      window.location.href = "/";
+    } else {
+      console.log("No error");
+    }
+  });
 });
 
 socket.on("disconnect", function() {
   console.log("Disconnected from server");
+});
+
+socket.on("updateUserList", function(users) {
+  console.log(users);
 });
 
 socket.on("newMessage", function(message) {

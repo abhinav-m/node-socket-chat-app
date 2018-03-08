@@ -4,6 +4,8 @@ const express = require("express");
 const socketIO = require("socket.io");
 
 const { generateMessage, generateLocationMessage } = require("./utils/message");
+const { isRealString } = require("./utils/validation");
+const { Users } = require("./utils/users");
 
 // //One way to access a directory on the same level (such as public in this case.)
 // console.log(__dirname + "/../public");
@@ -17,21 +19,46 @@ const app = express();
 const server = http.createServer(app);
 var io = socketIO(server);
 app.use(express.static(publicPath));
+var users = new Users();
 
 io.on("connection", socket => {
   console.log("New user connected");
 
-  socket.emit(
-    "newMessage",
-    generateMessage("Admin", "Welcome to the chat app!")
-  );
+  socket.on("join", (params, callback) => {
+    if (!isRealString(params.name) || !isRealString(params.room)) {
+      //Make sure validtion returns so invalid users / rooms arent created.
+      return callback("Name and room name are required.");
+    }
+    //Joining a private room
+    socket.join(params.room);
+    //Leaving a room -> socket.leave('room')
 
-  //Send info to everybody BUT the socket being used.
-  //This will send message to the other tab than the one currently being used.
-  socket.broadcast.emit(
-    "newMessage",
-    generateMessage("Admin", "New user joined!")
-  );
+    //Make sure no user is present with same id (removes users from previous rooms)
+    users.removeUser(socket.id);
+    users.addUser(socket.id, params.name, params.room);
+
+    io.to(params.room).emit("updateUserList", users.getUserList(params.room));
+
+    //io.emit -> broadcast to every socket (every user) -> io.to('room').emit to a specific room
+    //socket.broadcast.emit -> All connected to socket server except current user. socket.broadcast.to('room').emit to a specific room
+    //socket.emit -> emit to one user.
+
+    socket.emit(
+      "newMessage",
+      generateMessage("Admin", "Welcome to the chat app!")
+    );
+
+    //Send info to everybody BUT the socket being used.
+    //This will send message to the other tab than the one currently being used.
+    socket.broadcast
+      .to(params.room)
+      .emit(
+        "newMessage",
+        generateMessage("Admin", `${params.name} has joined`)
+      );
+
+    callback();
+  });
 
   //io.emit broadcasts message to all 'sockets' or users connected (unlike socket.emit)
   //callback function here is the one defined in client (index.js) it can be executed to acknowledge data
@@ -51,6 +78,17 @@ io.on("connection", socket => {
   });
 
   socket.on("disconnect", socket => {
+    var user = users.getUser(socket.id);
+    console.log("The user leaving is:",user);
+    if (user) {
+      io.to(user.room).emit("updateUserList", users.getUserList(user.room));
+      io
+        .to(user.room)
+        .emit(
+          "newMessage",
+          generateMessage("Admin", `${user.name} has left the room.`)
+        );
+    }
     console.log("User disconnected");
   });
 });
