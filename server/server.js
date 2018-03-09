@@ -14,12 +14,13 @@ const { Users } = require("./utils/users");
 const publicPath = path.join(__dirname, "../public");
 const port = process.env.PORT || 3000;
 
-const app = express();
+var app = express();
 //Using express app as the http server Express allows this.
-const server = http.createServer(app);
+var server = http.createServer(app);
 var io = socketIO(server);
-app.use(express.static(publicPath));
 var users = new Users();
+
+app.use(express.static(publicPath));
 
 io.on("connection", socket => {
   console.log("New user connected");
@@ -54,7 +55,7 @@ io.on("connection", socket => {
       .to(params.room)
       .emit(
         "newMessage",
-        generateMessage("Admin", `${params.name} has joined`)
+        generateMessage("Admin", `${params.name} has joined the room.`)
       );
 
     callback();
@@ -77,9 +78,9 @@ io.on("connection", socket => {
     );
   });
 
-  socket.on("disconnect", socket => {
-    var user = users.getUser(socket.id);
-    console.log("The user leaving is:",user);
+  socket.on("disconnect", () => {
+    var user = users.removeUser(socket.id);
+    console.log("The user leaving is:", user.name);
     if (user) {
       io.to(user.room).emit("updateUserList", users.getUserList(user.room));
       io
